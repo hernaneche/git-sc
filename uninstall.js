@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 
-// Runs automatically before `npm uninstall -g git-shortcuts`.
+// Runs automatically before `npm uninstall -g git-sc`.
 // Strips everything we added; leaves the rest of each rc file untouched.
 
 const {
@@ -13,13 +13,13 @@ const {
   powershellProfilePaths
 } = require("../lib/core.js");
 
-if (process.env.npm_config_global !== "true" && !process.env.GIT_SHORTCUTS_FORCE) {
+if (process.env.npm_config_global !== "true" && !process.env.GIT_SC_FORCE) {
   // Nothing to undo on local uninstall because postinstall didn't run.
   process.exit(0);
 }
 
 try {
-  log("git-shortcuts: removing...\n");
+  log("git-sc: removing...\n");
 
   unsetGitAliases();
 
@@ -32,7 +32,7 @@ try {
   log("");
   ok("Cleaned up. Open a new terminal for shell changes to take effect.");
 } catch (e) {
-  warn(`git-shortcuts preuninstall hit an error: ${e.message}`);
+  warn(`git-sc preuninstall hit an error: ${e.message}`);
   warn("You may need to clean up leftover entries in your rc files or gitconfig manually.");
 }
 process.exit(0);

@@ -1,5 +1,5 @@
 {
-  "name": "git-shortcuts",
+  "name": "git-sc",
   "version": "1.0.0",
   "description": "Install a consistent set of git + shell shortcuts just by npm installing this package globally. Works on macOS, Linux, WSL, and Windows (PowerShell 5.1 and 7+).",
   "scripts": {

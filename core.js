@@ -6,8 +6,8 @@ const os = require("os");
 const path = require("path");
 
 const HOME = os.homedir();
-const BLOCK_START = "# >>> git-shortcuts managed block >>>";
-const BLOCK_END = "# <<< git-shortcuts managed block <<<";
+const BLOCK_START = "# >>> git-sc managed block >>>";
+const BLOCK_END = "# <<< git-sc managed block <<<";
 
 // Edit this list to customize what gets installed.
 // `g` prefix is kept only where the bare name collides with a common command.
@@ -15,7 +15,7 @@ const ALIASES = {
   // pull / push / fetch
   p: "pull",
   gps: "push",   // `ps` = process status
-  gf: "fetch",   // `f` often user-aliased
+  f: "fetch",
 
   // status / diff
   s: "status",
@@ -86,7 +86,7 @@ function stripManagedBlock(content) {
 }
 
 function buildBlock(syntax) {
-  const lines = [BLOCK_START, "# Managed by the git-shortcuts npm package. `npm uninstall -g git-shortcuts` removes it."];
+  const lines = [BLOCK_START, "# Managed by the git-sc npm package. `npm uninstall -g git-sc` removes it."];
   if (syntax === "posix") {
     for (const [name, cmd] of Object.entries(ALIASES)) {
       lines.push(`alias ${name}='git ${cmd}'`);
