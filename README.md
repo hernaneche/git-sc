@@ -3,11 +3,11 @@
 Install a consistent set of git and shell shortcuts on any machine. No CLI, no config, no commands to remember.
 
 ```bash
-npm install -g github:hernaneche/git-sc 
+npm install -g github:hernaneche/git-sc
 ```
 
 ```bash
-npm uninstall -g git-sc                
+npm uninstall -g git-sc
 ```
 
 Works on macOS, Linux, WSL, and Windows (PowerShell 5.1 and 7+).
