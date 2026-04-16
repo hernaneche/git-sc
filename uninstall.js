@@ -33,7 +33,8 @@ const {
   unsetGitAliases,
   removeManagedBlock,
   posixRcFiles,
-  powershellProfilePaths
+  powershellProfilePaths,
+  uninstallCmdSupport
 } = core;
 
 try {
@@ -46,6 +47,8 @@ try {
   if (process.platform === "win32" || commandExists("pwsh")) {
     for (const f of powershellProfilePaths()) removeManagedBlock(f);
   }
+
+  uninstallCmdSupport();
 
   log("");
   ok("Cleaned up. Open a new terminal for shell changes to take effect.");

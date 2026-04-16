@@ -199,6 +199,129 @@ function powershellProfilePaths() {
   return Array.from(results);
 }
 
+// ---------- cmd.exe support (Windows only) ----------
+// cmd has no aliases; we use doskey macros defined in a .cmd file that's
+// auto-run at every cmd startup via the HKCU AutoRun registry value.
+
+const CMD_SCRIPT_DIR = path.join(HOME, ".git-sc");
+const CMD_SCRIPT_PATH = path.join(CMD_SCRIPT_DIR, "aliases.cmd");
+const CMD_AUTORUN_MARKER = `"${CMD_SCRIPT_PATH}"`; // quoted so spaces in HOME work
+const CMD_REG_KEY = `HKCU\\Software\\Microsoft\\Command Processor`;
+const CMD_REG_VALUE = "AutoRun";
+
+function writeCmdAliasScript() {
+  try {
+    fs.mkdirSync(CMD_SCRIPT_DIR, { recursive: true });
+    const lines = [
+      "@echo off",
+      "REM Managed by the git-sc npm package. `npm uninstall -g git-sc` removes it.",
+    ];
+    for (const [name, cmd] of Object.entries(ALIASES)) {
+      // doskey: $* = all arguments passed to the macro
+      lines.push(`doskey ${name}=git ${cmd} $*`);
+    }
+    fs.writeFileSync(CMD_SCRIPT_PATH, lines.join("\r\n") + "\r\n");
+    ok(`Updated ${CMD_SCRIPT_PATH}`);
+    return true;
+  } catch (e) {
+    warn(`Could not write cmd aliases script: ${e.message}`);
+    return false;
+  }
+}
+
+function removeCmdAliasScript() {
+  try {
+    if (fs.existsSync(CMD_SCRIPT_PATH)) {
+      fs.unlinkSync(CMD_SCRIPT_PATH);
+      ok(`Removed ${CMD_SCRIPT_PATH}`);
+    }
+    // Try to remove the directory if empty
+    try { fs.rmdirSync(CMD_SCRIPT_DIR); } catch { /* not empty or missing; fine */ }
+  } catch (e) {
+    warn(`Could not remove cmd aliases script: ${e.message}`);
+  }
+}
+
+function readCmdAutoRun() {
+  // Returns the current HKCU AutoRun value, or "" if unset.
+  try {
+    const out = execSync(`reg query "${CMD_REG_KEY}" /v ${CMD_REG_VALUE}`, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    });
+    // Output looks like:
+    //     AutoRun    REG_SZ    some-value
+    const m = out.match(/AutoRun\s+REG_(?:SZ|EXPAND_SZ)\s+(.*)/);
+    return m ? m[1].trim() : "";
+  } catch {
+    return ""; // value not set
+  }
+}
+
+function addCmdAutoRunEntry() {
+  try {
+    const current = readCmdAutoRun();
+    // Already points to our script — nothing to do.
+    if (current.includes(CMD_AUTORUN_MARKER)) {
+      ok("cmd.exe AutoRun already configured.");
+      return true;
+    }
+    // Preserve any existing AutoRun entry by chaining with &.
+    const combined = current
+      ? `${current} & ${CMD_AUTORUN_MARKER}`
+      : CMD_AUTORUN_MARKER;
+    execSync(
+      `reg add "${CMD_REG_KEY}" /v ${CMD_REG_VALUE} /t REG_EXPAND_SZ /d "${combined.replace(/"/g, '\\"')}" /f`,
+      { stdio: "ignore" }
+    );
+    ok("Configured cmd.exe AutoRun.");
+    return true;
+  } catch (e) {
+    warn(`Could not set cmd.exe AutoRun: ${e.message}`);
+    return false;
+  }
+}
+
+function removeCmdAutoRunEntry() {
+  try {
+    const current = readCmdAutoRun();
+    if (!current) return; // nothing to clean
+    if (!current.includes(CMD_AUTORUN_MARKER)) return; // not ours; don't touch
+
+    // Remove our marker and any surrounding " & " glue; trim leftover whitespace.
+    let cleaned = current
+      .replace(new RegExp(`\\s*&\\s*${escapeRegex(CMD_AUTORUN_MARKER)}`), "")
+      .replace(new RegExp(`${escapeRegex(CMD_AUTORUN_MARKER)}\\s*&\\s*`), "")
+      .replace(CMD_AUTORUN_MARKER, "")
+      .trim();
+
+    if (cleaned === "") {
+      // We were the only thing there — delete the value entirely.
+      execSync(`reg delete "${CMD_REG_KEY}" /v ${CMD_REG_VALUE} /f`, { stdio: "ignore" });
+      ok("Removed cmd.exe AutoRun entry.");
+    } else {
+      execSync(
+        `reg add "${CMD_REG_KEY}" /v ${CMD_REG_VALUE} /t REG_EXPAND_SZ /d "${cleaned.replace(/"/g, '\\"')}" /f`,
+        { stdio: "ignore" }
+      );
+      ok("Cleaned cmd.exe AutoRun entry.");
+    }
+  } catch (e) {
+    warn(`Could not clean cmd.exe AutoRun: ${e.message}`);
+  }
+}
+
+function installCmdSupport() {
+  if (process.platform !== "win32") return;
+  if (writeCmdAliasScript()) addCmdAutoRunEntry();
+}
+
+function uninstallCmdSupport() {
+  if (process.platform !== "win32") return;
+  removeCmdAutoRunEntry();
+  removeCmdAliasScript();
+}
+
 module.exports = {
   ALIASES,
   log, ok, warn, err,
@@ -208,5 +331,7 @@ module.exports = {
   writeManagedBlock,
   removeManagedBlock,
   posixRcFiles,
-  powershellProfilePaths
+  powershellProfilePaths,
+  installCmdSupport,
+  uninstallCmdSupport
 };
