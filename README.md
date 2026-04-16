@@ -80,7 +80,7 @@ You never call a command. Installing *is* the command.
 Edit the `ALIASES` object near the top of `lib/core.js`, commit, push, then on each machine:
 
 ```bash
-npm install -g github:YOUR_USER/git-sc
+npm install -g github:hernaneche/git-sc
 ```
 
 Reinstalling always rewrites the managed block to match the current config.
