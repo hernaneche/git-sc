@@ -3,18 +3,13 @@
   "version": "1.0.0",
   "description": "Install a consistent set of git + shell shortcuts just by npm installing this package globally. Works on macOS, Linux, WSL, and Windows (PowerShell 5.1 and 7+).",
   "scripts": {
-    "postinstall": "node scripts/install.js",
-    "preuninstall": "node scripts/uninstall.js"
+    "postinstall": "node -e \"try{require('./scripts/install.js')}catch(e){console.warn('git-sc postinstall skipped:',e.message);process.exit(0)}\"",
+    "preuninstall": "node -e \"try{require('./scripts/uninstall.js')}catch(e){console.warn('git-sc preuninstall skipped:',e.message);process.exit(0)}\""
   },
   "engines": {
     "node": ">=14"
   },
   "keywords": ["git", "aliases", "shortcuts", "dotfiles"],
-  "license": "MIT",
-  "files": [
-    "scripts/",
-    "lib/",
-    "README.md",
-    "LICENSE"
-  ]
+  "license": "MIT"
 }
+

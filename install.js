@@ -4,6 +4,41 @@
 // Runs automatically after `npm install -g git-sc`.
 // Never throws — partial failures log warnings but don't break the install.
 
+// Detect whether we're running inside npm's git-install "prepare" step.
+// When installing from a github: URL, npm clones to a temp dir and runs
+// `npm install` there to prepare the package; that triggers postinstall
+// in a directory we do NOT want to act on.
+function isNpmPrepareStep() {
+  const cwd = process.cwd();
+  // npm's cache temp paths contain these markers across platforms.
+  if (/[\\/]_cacache[\\/]tmp[\\/]/.test(cwd)) return true;
+  if (/[\\/]git-clone[^\\/]*$/i.test(cwd)) return true;
+  // npm sets npm_command to 'install' during prepare but without _config_global=true.
+  // When the user actually runs `npm install -g`, npm_config_global is "true".
+  return false;
+}
+
+if (isNpmPrepareStep()) {
+  // Silent skip — this isn't the real install, just npm prepping the package.
+  process.exit(0);
+}
+
+// Skip when running as a project dependency, not a global install.
+if (process.env.npm_config_global !== "true" && !process.env.GIT_SC_FORCE) {
+  console.log("git-sc: skipping (not a global install). Use `npm install -g git-sc`.");
+  process.exit(0);
+}
+
+// Try to load the core lib — if it's not there (e.g. weird prepare context
+// we didn't detect), bail silently instead of crashing the install.
+let core;
+try {
+  core = require("../lib/core.js");
+} catch (e) {
+  console.warn(`git-sc: could not load core module (${e.message}); skipping.`);
+  process.exit(0);
+}
+
 const {
   log, ok, warn,
   commandExists,
@@ -11,14 +46,7 @@ const {
   writeManagedBlock,
   posixRcFiles,
   powershellProfilePaths
-} = require("../lib/core.js");
-
-// Skip when running as a dependency of another project, not a global install.
-// npm sets npm_config_global=true for global installs.
-if (process.env.npm_config_global !== "true" && !process.env.GIT_SC_FORCE) {
-  log("git-sc: skipping postinstall (not a global install). Use `npm install -g git-sc`.");
-  process.exit(0);
-}
+} = core;
 
 try {
   log("git-sc: installing...\n");

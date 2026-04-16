@@ -4,6 +4,29 @@
 // Runs automatically before `npm uninstall -g git-sc`.
 // Strips everything we added; leaves the rest of each rc file untouched.
 
+function isNpmPrepareStep() {
+  const cwd = process.cwd();
+  if (/[\\/]_cacache[\\/]tmp[\\/]/.test(cwd)) return true;
+  if (/[\\/]git-clone[^\\/]*$/i.test(cwd)) return true;
+  return false;
+}
+
+if (isNpmPrepareStep()) {
+  process.exit(0);
+}
+
+if (process.env.npm_config_global !== "true" && !process.env.GIT_SC_FORCE) {
+  process.exit(0);
+}
+
+let core;
+try {
+  core = require("../lib/core.js");
+} catch (e) {
+  console.warn(`git-sc: could not load core module (${e.message}); skipping.`);
+  process.exit(0);
+}
+
 const {
   log, ok, warn,
   commandExists,
@@ -11,12 +34,7 @@ const {
   removeManagedBlock,
   posixRcFiles,
   powershellProfilePaths
-} = require("../lib/core.js");
-
-if (process.env.npm_config_global !== "true" && !process.env.GIT_SC_FORCE) {
-  // Nothing to undo on local uninstall because postinstall didn't run.
-  process.exit(0);
-}
+} = core;
 
 try {
   log("git-sc: removing...\n");
