@@ -3,7 +3,7 @@
 Install a consistent set of git and shell shortcuts on any machine. No CLI, no config, no commands to remember.
 
 ```bash
-npm install -g github:YOUR_USER/git-sc   # done
+npm install -g github:hernaneche/git-sc   # done
 ```
 
 ```bash
