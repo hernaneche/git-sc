@@ -1,34 +1,37 @@
 #!/usr/bin/env node
 "use strict";
 
-// Runs automatically before `npm uninstall -g git-sc`.
-// Strips everything we added; leaves the rest of each rc file untouched.
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 
-function isNpmPrepareStep() {
-  const cwd = process.cwd();
-  if (/[\\/]_cacache[\\/]tmp[\\/]/.test(cwd)) return true;
-  if (/[\\/]git-clone[^\\/]*$/i.test(cwd)) return true;
-  return false;
+const LOG_PATH = path.join(os.homedir(), ".git-sc-install.log");
+
+function diag(msg) {
+  const line = `[${new Date().toISOString()}] ${msg}\n`;
+  try { fs.appendFileSync(LOG_PATH, line); } catch {}
+  try { process.stdout.write(`git-sc: ${msg}\n`); } catch {}
 }
 
-if (isNpmPrepareStep()) {
-  process.exit(0);
-}
+diag(`=== preuninstall start ===`);
+diag(`cwd=${process.cwd()} platform=${process.platform}`);
 
-if (process.env.npm_config_global !== "true" && !process.env.GIT_SC_FORCE) {
+const cwd = process.cwd();
+if (/[\\/]_cacache[\\/]tmp[\\/]/.test(cwd) || /[\\/]git-clone[^\\/]*$/i.test(cwd)) {
+  diag("detected npm prepare step; skipping.");
   process.exit(0);
 }
 
 let core;
 try {
-  core = require("../lib/core.js");
+  core = require(require("path").join(__dirname, "..", "lib", "core.js"));
 } catch (e) {
-  console.warn(`git-sc: could not load core module (${e.message}); skipping.`);
+  diag(`could not load core: ${e.message}`);
   process.exit(0);
 }
 
 const {
-  log, ok, warn,
+  ok, warn,
   commandExists,
   unsetGitAliases,
   removeManagedBlock,
@@ -38,7 +41,7 @@ const {
 } = core;
 
 try {
-  log("git-sc: removing...\n");
+  diag("running uninstall");
 
   unsetGitAliases();
 
@@ -48,12 +51,15 @@ try {
     for (const f of powershellProfilePaths()) removeManagedBlock(f);
   }
 
-  uninstallCmdSupport();
+  if (process.platform === "win32") {
+    uninstallCmdSupport();
+  }
 
-  log("");
-  ok("Cleaned up. Open a new terminal for shell changes to take effect.");
+  diag("=== uninstall completed ===");
+  ok("git-sc removed. Open a new terminal.");
 } catch (e) {
-  warn(`git-sc preuninstall hit an error: ${e.message}`);
-  warn("You may need to clean up leftover entries in your rc files or gitconfig manually.");
+  diag(`FATAL: ${e.stack || e.message}`);
+  warn(`git-sc uninstall failed: ${e.message}`);
 }
+
 process.exit(0);
